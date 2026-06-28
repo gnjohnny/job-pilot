@@ -1,6 +1,6 @@
-# Memory — PostHog Telemetry Integration
+# Memory — Database Schema and Storage Setup
 
-Last updated: 2026-06-28T14:55:00+03:00
+Last updated: 2026-06-28T15:07:00+03:00
 
 ## What was built
 
@@ -11,34 +11,31 @@ Last updated: 2026-06-28T14:55:00+03:00
 - **Server Actions (carried over)**: Created `actions/auth.ts` to manage server-side OAuth initiation and sign-out.
 - **Pages (carried over)**: Created `app/(auth)/login/page.tsx` with social login triggers, and placeholder pages for `/dashboard`, `/profile`, and `/find-jobs`.
 - **Middleware (carried over)**: Setup `proxy.ts` (Next.js 16 middleware) to handle token verification and route protection.
-- **PostHog Telemetry Integration**:
-  - Created `lib/posthog-client.ts` to initialize client-side browser tracking with manual pageviews disabled.
-  - Created `lib/posthog-server.ts` to initialize server-side event tracking with immediate flush (`flushAt: 1`, `flushInterval: 0`).
-  - Created `components/providers/PostHogProvider.tsx` Client Component React context provider.
-  - Integrated `PostHogProvider` into `app/layout.tsx`.
-  - Added user identification (`posthog.identify()`) and sign-out reset (`posthog.reset()`) lifecycle hooks inside `components/layout/Navbar.tsx`.
+- **PostHog Telemetry Integration (carried over)**: Added client/server PostHog event tracking integrated into layouts and hooks.
+- **Database Schema**: Created tables `profiles`, `agent_runs`, `jobs`, and `agent_logs` in the InsForge Postgres database with proper cascading keys, types, and defaults.
+- **Row-Level Security**: Enabled RLS on all 4 tables with policies restricting operations based on `auth.uid()`.
+- **Private Resumes Storage**: Created `resumes` storage bucket in InsForge. Configured RLS policies on `storage.objects` to ensure users can only access their own files under `resumes/{auth.uid()}/resume.pdf`.
 
 ## Decisions made
 
-- **PostHog Client Provider Structure**: Decided to isolate PostHog client initialization inside `components/providers/PostHogProvider.tsx` Client Component wrapper. This keeps the root layout `app/layout.tsx` as a Server Component for optimized metadata and server-rendered features.
-- **Server-Side OAuth Callback (carried over)**: Directed redirect callback to GET Route Handler to permit response headers cookies modification, avoiding Server Component read-only cookie limitations.
-- **Cookie Redirect Bypass (carried over)**: Instantiated `NextResponse.redirect` object first and wrote session cookies directly onto `response.cookies` to bypass the Next.js App Router bug where `cookies().set()` changes are lost during redirects.
-- **Refresh Endpoint Sync (carried over)**: Created `/api/auth/refresh` API Route Handler to satisfy the startup token-refresh POST requests initiated automatically by the browser-side client (`createBrowserClient`).
+- **Relational Integrity**: Linked all secondary tables (`agent_runs`, `jobs`, `agent_logs`) directly to `profiles.id` (which references `auth.users(id)`) using `ON DELETE CASCADE` to keep database deletion mechanics simple and clean.
+- **Storage and Object Security**: Placed RLS rules on the `storage.objects` table using the prefix check `(key LIKE auth.uid()::text || '/%')` on the private `resumes` bucket.
+- **PostHog Client Provider Structure (carried over)**: Isolated PostHog client initialization inside `components/providers/PostHogProvider.tsx`.
+- **Server-Side OAuth Callback (carried over)**: Directed redirect callback to GET Route Handler to permit response headers cookies modification.
 
 ## Problems solved
 
-- **PostHog Token Mismatch**: Detected that `.env` and `.env.local` use the variable name `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` instead of `NEXT_PUBLIC_POSTHOG_KEY`. Configured client and server PostHog initializers to check `process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || process.env.NEXT_PUBLIC_POSTHOG_KEY` to resolve silent tracking failures.
-- **PowerShell Script Policy Restriction**: Solved Windows execution policy blocking script execution (`npm.ps1`) by running node commands through `npm.cmd` explicitly.
-- **Stale Next.js Dev Cache**: Diagnosed next compiler type errors (`Cannot find name 'ler'`) inside `.next/dev/types/validator.ts` as stale dev cache, which is resolved by manually clearing `.next/` and restarting the Next.js dev server.
+- **PostHog Token Mismatch (carried over)**: Added fallback logic to resolve PostHog key name differences between `.env` and `.env.local`.
+- **PowerShell Script Policy Restriction (carried over)**: Executed node commands using `npm.cmd` explicitly instead of `npm`.
 
 ## Current state
 
-- Auth integration and PostHog tracking baseline are complete.
-- Production build compiles successfully.
+- All foundation setup (Phase 1) is complete.
+- Database schemas are active, storage bucket is created, auth is integrated, and PostHog tracking baseline works.
 
 ## Next session starts with
 
-- **04 Database Schema**: Set up InsForge database tables (`profiles`, `agent_runs`, `jobs`, `agent_logs`) and storage buckets (`resumes`).
+- **05 Profile Page — Full UI**: Build the complete profile page UI (banners, upload forms, personal/professional detail forms, preferences, and save triggers) using mock data.
 
 ## Open questions
 
