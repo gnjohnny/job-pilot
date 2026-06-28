@@ -1,34 +1,27 @@
-# Memory — Profile Page UI Completion
+# Memory — PDF Download Format Fix
 
-Last updated: 2026-06-28T15:33:00+03:00
+Last updated: 2026-06-28T16:51:00+03:00
 
 ## What was built
 
-- **Profile Form Component**: Created `components/profile/ProfileForm.tsx` (Client Component) containing:
-  - "Profile needs attention" alert banner with custom SVG progress ring (70%).
-  - Drag-and-drop PDF resume upload zone.
-  - Form layout for Personal Info, Professional Info (with dynamic skills and industries tag controls), Work Experience (dynamic role addition/deletion up to 3 items), Education, and Job Preferences.
-- **Profile Page Routing**: Integrated `ProfileForm` component inside `app/profile/page.tsx`.
-- **UI Registry Updates**: Documented `ProfileForm` styling classes, border configurations, spacing tokens, and custom SVG structures in `context/ui-registry.md`.
-- **Progress Tracker Updates**: Marked Feature 05 (Profile Page — Full UI) as completed in `context/progress-tracker.md`.
+- **Explicit PDF Content-Type Wrapping**: Modified `handleViewStoredResume` in [components/profile/ProfileForm.tsx](file:///C:/Users/Johnny/Agy_test/lead_finder/components/profile/ProfileForm.tsx) to explicitly wrap the downloaded storage file Blob in a new Blob of type `"application/pdf"` before generating the object URL. This ensures the browser handles the file correctly as a PDF.
 
 ## Decisions made
 
-- **Form State Delegation**: Decided to isolate interactive inputs and list arrays inside `components/profile/ProfileForm.tsx` (Client Component) to preserve `app/profile/page.tsx` as a Server Component for DB fetching.
-- **Dependency Minimization**: Implemented the circular progress completion ring as a native SVG component to avoid bringing in third-party library dependencies.
+- **Client-Side Blob Reconstruction**: Reconstructed the Blob on the client-side rather than changing the server-side API or metadata. This ensures correct rendering regardless of how the file is served by the storage backend.
 
 ## Problems solved
 
-- **PowerShell Script Policy Restriction**: Resolved execution policy blockages by executing node/npm scripts explicitly via `npm.cmd` instead of `npm`.
+- **Unknown Download File Format**: Resolved the bug where viewed/downloaded resume PDF files were downloaded as files of unknown format (no extension) and could not be opened.
 
 ## Current state
 
-- All Page routes compile correctly, and the build succeeds.
-- Interactive states (drag-and-drop files, tag lists, work experience roles, and select fields) are visually functional on `/profile`.
+- The profile resume download, view, and upload operations are fully functional.
+- Next.js production build passes compilation and type-checking successfully.
 
 ## Next session starts with
 
-- **06 Profile Save Logic**: Create Server Actions inside `actions/profile.ts` to persist all form fields to the `profiles` table in the InsForge PostgreSQL DB, upload the PDF to `resumes` storage, and dynamically compute and store completion percentages.
+- **07 AI Profile Extraction from Resume**: Build the "Extract from Resume" feature which uses `pdf-parse` to read uploaded PDF text and asks GPT-4o to automatically extract and populate the profile form fields.
 
 ## Open questions
 

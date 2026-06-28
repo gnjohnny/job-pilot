@@ -280,7 +280,9 @@ export function ProfileForm({ initialData, email }: Props) {
 
       if (blob) {
         toast.dismiss(toastId);
-        const objectUrl = URL.createObjectURL(blob);
+        // Explicitly set MIME type to application/pdf so the browser correctly opens it as a PDF
+        const pdfBlob = new Blob([blob], { type: "application/pdf" });
+        const objectUrl = URL.createObjectURL(pdfBlob);
         window.open(objectUrl, "_blank");
       } else {
         toast.dismiss(toastId);
