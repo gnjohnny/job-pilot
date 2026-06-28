@@ -268,6 +268,8 @@ Last updated: 2026-06-28
 - Dynamically manages skills and industries tags, file drag-and-drop upload, and list additions for up to 3 work experience roles.
 - Custom SVG circular progress ring for rendering completion percentage dynamically.
 - Email input is locked as read-only. Start Date fields are annotated with a Calendar icon. End Date fields are disabled when the "Currently working here" checkbox is checked.
+- Incorporates "Cover Letter Tone" preference selection (Formal, Casual, Enthusiastic).
+- Fully wired to `saveProfileAction` (Server Action) for DB saving, storage PDF upload, and PostHog tracking.
 
 
 

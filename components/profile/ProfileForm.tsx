@@ -11,6 +11,10 @@ import {
   Sparkles,
   ChevronDown
 } from "lucide-react";
+import { calculateProfileCompletion } from "@/lib/profile-utils";
+import { saveProfileAction } from "@/actions/profile";
+import { toast } from "react-hot-toast";
+import { insforge } from "@/lib/insforge-client";
 
 // Custom SVG Circular Progress Ring
 function CircularProgress({ percentage }: { percentage: number }) {
@@ -49,56 +53,98 @@ function CircularProgress({ percentage }: { percentage: number }) {
   );
 }
 
-export function ProfileForm() {
-  // Mock profile state pre-filled to match design.png
-  const [fullName, setFullName] = useState("Faizan Ali");
-  const [email] = useState("faizan@jsmastery.pro"); // pre-filled, not editable
-  const [phone, setPhone] = useState("+1 (555) 000-0000");
-  const [location, setLocation] = useState("City, Country");
-  const [linkedinUrl, setLinkedinUrl] = useState("https://linkedin.com/in/faizan");
-  const [portfolioUrl, setPortfolioUrl] = useState("https://github.com/jsmastery");
-  const [workAuthorization, setWorkAuthorization] = useState("citizen");
+type Props = {
+  initialData?: any;
+  email: string;
+};
 
-  const [currentTitle, setCurrentTitle] = useState("Frontend Engineer");
-  const [experienceLevel, setExperienceLevel] = useState("junior");
-  const [yearsExperience, setYearsExperience] = useState("4");
+export function ProfileForm({ initialData, email }: Props) {
+  // Profile state initialized from initialData or defaults
+  const [fullName, setFullName] = useState(initialData?.full_name ?? "");
+  const [phone, setPhone] = useState(initialData?.phone ?? "");
+  const [location, setLocation] = useState(initialData?.location ?? "");
+  const [linkedinUrl, setLinkedinUrl] = useState(initialData?.linkedin_url ?? "");
+  const [portfolioUrl, setPortfolioUrl] = useState(initialData?.portfolio_url ?? "");
+  const [workAuthorization, setWorkAuthorization] = useState(initialData?.work_authorization ?? "citizen");
+
+  const [currentTitle, setCurrentTitle] = useState(initialData?.current_title ?? "");
+  const [experienceLevel, setExperienceLevel] = useState(initialData?.experience_level ?? "junior");
+  const [yearsExperience, setYearsExperience] = useState(
+    initialData?.years_experience !== null && initialData?.years_experience !== undefined 
+      ? String(initialData.years_experience) 
+      : ""
+  );
 
   // Skills state
-  const [skills, setSkills] = useState<string[]>(["React", "TypeScript", "Next.js", "Tailwind CSS"]);
+  const [skills, setSkills] = useState<string[]>(initialData?.skills ?? []);
   const [skillInput, setSkillInput] = useState("");
 
   // Industries state
-  const [industries, setIndustries] = useState<string[]>([]);
+  const [industries, setIndustries] = useState<string[]>(initialData?.industries ?? []);
   const [industryInput, setIndustryInput] = useState("");
 
   // Work Experience state (up to 3)
-  const [workExperience, setWorkExperience] = useState([
-    {
-      id: "1",
-      company: "Vercel",
-      jobTitle: "Frontend Engineer",
-      startDate: "January 2022",
-      endDate: "",
-      currentlyWorking: true,
-      responsibilities: "Built Next.js features and optimized web vitals. Led a team of 3 developers."
-    }
-  ]);
+  const [workExperience, setWorkExperience] = useState<any[]>(
+    Array.isArray(initialData?.work_experience) && initialData.work_experience.length > 0
+      ? initialData.work_experience.map((w: any, index: number) => ({
+          id: w.id || index.toString(),
+          company: w.company || "",
+          jobTitle: w.jobTitle || "",
+          startDate: w.startDate || "",
+          endDate: w.endDate || "",
+          currentlyWorking: !!w.currentlyWorking,
+          responsibilities: w.responsibilities || ""
+        }))
+      : []
+  );
 
   // Education state
-  const [highestDegree, setHighestDegree] = useState("high_school");
-  const [fieldOfStudy, setFieldOfStudy] = useState("Computer Science");
-  const [institutionName, setInstitutionName] = useState("E.g. State University");
-  const [graduationYear, setGraduationYear] = useState("YYYY");
+  const [highestDegree, setHighestDegree] = useState(initialData?.education?.highestDegree ?? "high_school");
+  const [fieldOfStudy, setFieldOfStudy] = useState(initialData?.education?.fieldOfStudy ?? "");
+  const [institutionName, setInstitutionName] = useState(initialData?.education?.institutionName ?? "");
+  const [graduationYear, setGraduationYear] = useState(initialData?.education?.graduationYear ?? "");
 
   // Job Preferences state
-  const [jobTitlesSeeking, setJobTitlesSeeking] = useState("Frontend Engineer, React Developer");
-  const [remotePreference, setRemotePreference] = useState("any");
-  const [salaryExpectation, setSalaryExpectation] = useState("E.g. $120k+");
-  const [preferredLocations, setPreferredLocations] = useState("E.g. New York, London");
+  const [jobTitlesSeeking, setJobTitlesSeeking] = useState(
+    Array.isArray(initialData?.job_titles_seeking) 
+      ? initialData.job_titles_seeking.join(", ") 
+      : ""
+  );
+  const [remotePreference, setRemotePreference] = useState(initialData?.remote_preference ?? "any");
+  const [salaryExpectation, setSalaryExpectation] = useState(initialData?.salary_expectation ?? "");
+  const [preferredLocations, setPreferredLocations] = useState(
+    Array.isArray(initialData?.preferred_locations)
+      ? initialData.preferred_locations.join(", ")
+      : ""
+  );
+  const [coverLetterTone, setCoverLetterTone] = useState(initialData?.cover_letter_tone ?? "formal");
 
-  // File Upload State
+  // File Upload and Stored Resume State
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [resumePdfUrl, setResumePdfUrl] = useState<string | null>(initialData?.resume_pdf_url ?? null);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Calculate live completion stats
+  const checkPayload = {
+    full_name: fullName,
+    phone,
+    location,
+    current_title: currentTitle,
+    years_experience: yearsExperience,
+    skills,
+    work_experience: workExperience,
+    education: {
+      highestDegree,
+      fieldOfStudy,
+      institutionName,
+      graduationYear,
+    },
+    job_titles_seeking: jobTitlesSeeking.split(",").map((t: string) => t.trim()).filter(Boolean),
+    resume_pdf_url: resumePdfUrl,
+  };
+
+  const { percentage, missingFields } = calculateProfileCompletion(checkPayload);
 
   // Handlers for dynamic lists
   const handleAddSkill = (e: React.FormEvent) => {
@@ -177,7 +223,7 @@ export function ProfileForm() {
       if (file.type === "application/pdf") {
         setUploadedFile(file);
       } else {
-        alert("Only PDF formatting is allowed.");
+        toast.error("Only PDF formatting is allowed.");
       }
     }
   };
@@ -188,43 +234,153 @@ export function ProfileForm() {
       if (file.type === "application/pdf") {
         setUploadedFile(file);
       } else {
-        alert("Only PDF formatting is allowed.");
+        toast.error("Only PDF formatting is allowed.");
       }
+    }
+  };
+
+  // Download and view stored resume PDF using authenticated client
+  const handleViewStoredResume = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (!resumePdfUrl) {
+      toast.error("No stored resume found.");
+      return;
+    }
+
+    const toastId = toast.loading("Downloading resume...");
+
+    try {
+      // Extract the key/path from the url
+      // e.g. https://.../objects/user-id%2Fresume.pdf?v=...
+      let path = "";
+      if (resumePdfUrl.includes("/objects/")) {
+        const afterObjects = resumePdfUrl.split("/objects/")[1];
+        const withoutQuery = afterObjects.split("?")[0];
+        path = decodeURIComponent(withoutQuery);
+      } else {
+        // Fallback key if URL doesn't follow expected pattern
+        const userId = initialData?.id;
+        if (!userId) {
+          toast.dismiss(toastId);
+          toast.error("Could not determine resume path.");
+          return;
+        }
+        path = `${userId}/resume.pdf`;
+      }
+
+      const { data: blob, error: downloadError } = await insforge.storage
+        .from("resumes")
+        .download(path);
+
+      if (downloadError) {
+        toast.dismiss(toastId);
+        toast.error(`Download failed: ${downloadError.message}`);
+        return;
+      }
+
+      if (blob) {
+        toast.dismiss(toastId);
+        const objectUrl = URL.createObjectURL(blob);
+        window.open(objectUrl, "_blank");
+      } else {
+        toast.dismiss(toastId);
+        toast.error("No content received from server.");
+      }
+    } catch (err) {
+      toast.dismiss(toastId);
+      console.error("[ProfileForm] Resume download error:", err);
+      toast.error("An error occurred while downloading the resume.");
+    }
+  };
+
+  // Submit/Save Handler
+  const handleSave = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    setIsSaving(true);
+
+    try {
+      const payload = {
+        full_name: fullName,
+        phone,
+        location,
+        current_title: currentTitle,
+        experience_level: experienceLevel,
+        years_experience: yearsExperience ? parseInt(yearsExperience, 10) : null,
+        skills,
+        industries,
+        work_experience: workExperience.map((w: any) => { const { id, ...rest } = w; return rest; }),
+        education: {
+          highestDegree,
+          fieldOfStudy,
+          institutionName,
+          graduationYear,
+        },
+        job_titles_seeking: jobTitlesSeeking.split(",").map((t: string) => t.trim()).filter(Boolean),
+        remote_preference: remotePreference,
+        salary_expectation: salaryExpectation,
+        preferred_locations: preferredLocations.split(",").map((l: string) => l.trim()).filter(Boolean),
+        cover_letter_tone: coverLetterTone,
+        linkedin_url: linkedinUrl,
+        portfolio_url: portfolioUrl,
+        work_authorization: workAuthorization,
+        resume_pdf_url: resumePdfUrl,
+      };
+
+      const formData = new FormData();
+      formData.append("profileData", JSON.stringify(payload));
+      
+      if (uploadedFile) {
+        formData.append("resume", uploadedFile);
+      }
+
+      const result = await saveProfileAction(formData);
+      if (result.success) {
+        toast.success("Profile saved successfully!");
+        if (result.data?.resume_pdf_url) {
+          setResumePdfUrl(result.data.resume_pdf_url);
+        }
+        setUploadedFile(null);
+      } else {
+        toast.error("Error saving profile: " + result.error);
+      }
+    } catch (err) {
+      console.error("[ProfileForm] Save error:", err);
+      toast.error("An unexpected error occurred while saving your profile.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto pb-12">
       {/* 1. Attention Banner */}
-      <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex items-center justify-between gap-6">
-        <div className="flex items-start gap-4">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-error/10 text-error shrink-0">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <div className="flex flex-col gap-2">
-            <h2 className="font-sans text-base font-semibold text-text-primary">
-              Profile needs attention
-            </h2>
-            <p className="font-sans text-sm text-text-secondary">
-              Complete the missing fields to improve your chance of getting tailored matches and generating quality resumes.
-            </p>
-            <div className="flex gap-2 mt-2">
-              <span className="bg-error/10 text-error font-sans text-xs font-semibold px-2 py-1 rounded">
-                PHONE
-              </span>
-              <span className="bg-error/10 text-error font-sans text-xs font-semibold px-2 py-1 rounded">
-                LOCATION
-              </span>
-              <span className="bg-error/10 text-error font-sans text-xs font-semibold px-2 py-1 rounded">
-                EDUCATION
-              </span>
+      {missingFields.length > 0 && (
+        <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex items-center justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-error/10 text-error shrink-0">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <h2 className="font-sans text-base font-semibold text-text-primary">
+                Profile needs attention
+              </h2>
+              <p className="font-sans text-sm text-text-secondary">
+                Complete the missing fields to improve your chance of getting tailored matches and generating quality resumes.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {missingFields.map((field) => (
+                  <span key={field} className="bg-error/10 text-error font-sans text-xs font-semibold px-2 py-1 rounded">
+                    {field}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
+          <div className="shrink-0">
+            <CircularProgress percentage={percentage} />
+          </div>
         </div>
-        <div className="shrink-0">
-          <CircularProgress percentage={70} />
-        </div>
-      </div>
+      )}
 
       {/* 2. Resume Section */}
       <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-4">
@@ -262,7 +418,9 @@ export function ProfileForm() {
           <p className="font-sans text-sm font-semibold text-text-primary">
             {uploadedFile 
               ? `Uploaded: ${uploadedFile.name}` 
-              : "Click to upload or drag and drop"
+              : resumePdfUrl 
+                ? "Active Resume (Stored PDF)"
+                : "Click to upload or drag and drop"
             }
           </p>
           <p className="font-sans text-xs text-text-secondary mt-1">
@@ -271,6 +429,15 @@ export function ProfileForm() {
               : "PDF formatting only. Maximum file size 5MB."
             }
           </p>
+          {resumePdfUrl && !uploadedFile && (
+            <button 
+              type="button"
+              onClick={handleViewStoredResume}
+              className="text-xs text-accent hover:underline mt-1 inline-block z-10 cursor-pointer"
+            >
+              View stored PDF
+            </button>
+          )}
           <label
             htmlFor="resume-upload"
             className="mt-4 px-4 py-2 bg-surface border border-border text-text-primary rounded-md font-sans text-sm font-medium shadow-sm hover:bg-surface-secondary cursor-pointer transition-colors z-10"
@@ -318,6 +485,7 @@ export function ProfileForm() {
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
+                placeholder="Full Name"
                 className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
               />
             </div>
@@ -364,6 +532,7 @@ export function ProfileForm() {
                 type="url"
                 value={linkedinUrl}
                 onChange={(e) => setLinkedinUrl(e.target.value)}
+                placeholder="https://linkedin.com/in/username"
                 className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
               />
             </div>
@@ -375,6 +544,7 @@ export function ProfileForm() {
                 type="url"
                 value={portfolioUrl}
                 onChange={(e) => setPortfolioUrl(e.target.value)}
+                placeholder="https://github.com/username"
                 className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
               />
             </div>
@@ -414,6 +584,7 @@ export function ProfileForm() {
                 type="text"
                 value={currentTitle}
                 onChange={(e) => setCurrentTitle(e.target.value)}
+                placeholder="Current Title"
                 className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
               />
             </div>
@@ -444,6 +615,7 @@ export function ProfileForm() {
                   type="number"
                   value={yearsExperience}
                   onChange={(e) => setYearsExperience(e.target.value)}
+                  placeholder="Years"
                   className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
                 />
               </div>
@@ -597,6 +769,7 @@ export function ProfileForm() {
                         type="text"
                         value={work.company}
                         onChange={(e) => handleUpdateRole(work.id, "company", e.target.value)}
+                        placeholder="Company"
                         className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
                       />
                     </div>
@@ -608,6 +781,7 @@ export function ProfileForm() {
                         type="text"
                         value={work.jobTitle}
                         onChange={(e) => handleUpdateRole(work.id, "jobTitle", e.target.value)}
+                        placeholder="Job Title"
                         className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
                       />
                     </div>
@@ -620,11 +794,11 @@ export function ProfileForm() {
                       </label>
                       <div className="relative">
                         <input
-                          type="text"
-                          value={work.startDate}
-                          onChange={(e) => handleUpdateRole(work.id, "startDate", e.target.value)}
-                          placeholder="e.g. January 2022"
-                          className="w-full font-sans text-sm text-text-primary bg-surface border border-border rounded-md pl-3 pr-10 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+                           type="text"
+                           value={work.startDate}
+                           onChange={(e) => handleUpdateRole(work.id, "startDate", e.target.value)}
+                           placeholder="e.g. January 2022"
+                           className="w-full font-sans text-sm text-text-primary bg-surface border border-border rounded-md pl-3 pr-10 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
                         />
                         <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
                       </div>
@@ -666,6 +840,7 @@ export function ProfileForm() {
                     <textarea
                       value={work.responsibilities}
                       onChange={(e) => handleUpdateRole(work.id, "responsibilities", e.target.value)}
+                      placeholder="Responsibilities..."
                       className="w-full h-24 font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none resize-none"
                     />
                   </div>
@@ -710,6 +885,7 @@ export function ProfileForm() {
                 type="text"
                 value={fieldOfStudy}
                 onChange={(e) => setFieldOfStudy(e.target.value)}
+                placeholder="Computer Science"
                 className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
               />
             </div>
@@ -721,6 +897,7 @@ export function ProfileForm() {
                 type="text"
                 value={institutionName}
                 onChange={(e) => setInstitutionName(e.target.value)}
+                placeholder="State University"
                 className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
               />
             </div>
@@ -732,6 +909,7 @@ export function ProfileForm() {
                 type="text"
                 value={graduationYear}
                 onChange={(e) => setGraduationYear(e.target.value)}
+                placeholder="2026"
                 className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
               />
             </div>
@@ -754,6 +932,7 @@ export function ProfileForm() {
                 type="text"
                 value={jobTitlesSeeking}
                 onChange={(e) => setJobTitlesSeeking(e.target.value)}
+                placeholder="Frontend Engineer, React Developer"
                 className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
               />
             </div>
@@ -784,6 +963,7 @@ export function ProfileForm() {
                   type="text"
                   value={salaryExpectation}
                   onChange={(e) => setSalaryExpectation(e.target.value)}
+                  placeholder="e.g. $120k+"
                   className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
                 />
               </div>
@@ -796,16 +976,38 @@ export function ProfileForm() {
                 type="text"
                 value={preferredLocations}
                 onChange={(e) => setPreferredLocations(e.target.value)}
+                placeholder="e.g. New York, San Francisco"
                 className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
               />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Cover Letter Tone
+              </label>
+              <div className="relative">
+                <select
+                  value={coverLetterTone}
+                  onChange={(e) => setCoverLetterTone(e.target.value)}
+                  className="w-full appearance-none font-sans text-sm text-text-primary bg-surface border border-border rounded-md pl-3 pr-10 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none cursor-pointer"
+                >
+                  <option value="formal">Formal</option>
+                  <option value="casual">Casual</option>
+                  <option value="enthusiastic">Enthusiastic</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Save Button */}
-      <button className="w-full py-3 bg-accent hover:bg-accent-dark text-accent-foreground font-sans text-sm font-semibold rounded-md shadow-sm transition-colors cursor-pointer flex items-center justify-center">
-        Save Profile
+      <button 
+        onClick={handleSave}
+        disabled={isSaving}
+        className="w-full py-3 bg-accent hover:bg-accent-dark disabled:bg-accent/50 text-accent-foreground font-sans text-sm font-semibold rounded-md shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-2"
+      >
+        {isSaving ? "Saving Profile..." : "Save Profile"}
       </button>
     </div>
   );

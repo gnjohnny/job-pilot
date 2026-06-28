@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { PostHogProvider } from "@/components/providers/PostHogProvider";
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -22,6 +23,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <PostHogProvider>{children}</PostHogProvider>
+        <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       </body>
     </html>
   );
