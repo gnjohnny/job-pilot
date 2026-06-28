@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { insforge } from "@/lib/insforge-client";
+import { posthog } from "@/lib/posthog-client";
 import { signOutAction } from "@/actions/auth";
 import { User, LogOut, LayoutDashboard, UserCircle } from "lucide-react";
 
@@ -25,6 +26,8 @@ export function Navbar() {
         console.log("Navbar fetchUser response:", { data, error });
         if (active && data?.user) {
           setUser(data.user);
+          // Identify user in PostHog client
+          posthog.identify(data.user.id);
         }
       } catch (err) {
         console.error("Failed to fetch user in Navbar:", err);
@@ -40,6 +43,8 @@ export function Navbar() {
     try {
       setDropdownOpen(false);
       setUser(null);
+      // Reset PostHog identity
+      posthog.reset();
       await signOutAction();
     } catch (err) {
       console.error("Sign out failed:", err);

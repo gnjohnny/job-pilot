@@ -222,4 +222,27 @@ Last updated: 2026-06-27
 - The page acts as the main landing surface for authenticated users. Welcomes users by profile name or email.
 - Wraps sign-out in a form trigger pointing to the `signOutAction` server action to cleanly expire cookies.
 
+---
+
+### PostHog Provider
+
+File: [components/providers/PostHogProvider.tsx](file:///C:/Users/Johnny/Agy_test/lead_finder/components/providers/PostHogProvider.tsx)
+Last updated: 2026-06-28
+
+| Property         | Class                                                     |
+| ---------------- | --------------------------------------------------------- |
+| Background       | `none` (Logical wrapper component)                        |
+| Border           | `none`                                                    |
+| Border radius    | `none`                                                    |
+| Text — primary   | `none`                                                    |
+| Text — secondary | `none`                                                    |
+| Spacing          | `none`                                                    |
+| Hover state      | `none`                                                    |
+| Shadow           | `none`                                                    |
+| Accent usage     | `none`                                                    |
+
+**Pattern notes:**
+- Client-side React context wrapper that loads the PostHog telemetry framework on demand, keeping layouts and root routing nodes as Server Components.
+
+
 
