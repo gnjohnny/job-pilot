@@ -1,41 +1,34 @@
-# Memory — Database Schema and Storage Setup
+# Memory — Profile Page UI Completion
 
-Last updated: 2026-06-28T15:07:00+03:00
+Last updated: 2026-06-28T15:33:00+03:00
 
 ## What was built
 
-- **Auth Client wrappers (carried over)**: Created client wrapper `lib/insforge-client.ts` and server client wrapper `lib/insforge-server.ts`.
-- **Route Handlers (carried over)**:
-  - Created `app/(auth)/callback/route.ts` for OAuth token exchange.
-  - Created `app/api/auth/refresh/route.ts` for browser client session refresh sync.
-- **Server Actions (carried over)**: Created `actions/auth.ts` to manage server-side OAuth initiation and sign-out.
-- **Pages (carried over)**: Created `app/(auth)/login/page.tsx` with social login triggers, and placeholder pages for `/dashboard`, `/profile`, and `/find-jobs`.
-- **Middleware (carried over)**: Setup `proxy.ts` (Next.js 16 middleware) to handle token verification and route protection.
-- **PostHog Telemetry Integration (carried over)**: Added client/server PostHog event tracking integrated into layouts and hooks.
-- **Database Schema**: Created tables `profiles`, `agent_runs`, `jobs`, and `agent_logs` in the InsForge Postgres database with proper cascading keys, types, and defaults.
-- **Row-Level Security**: Enabled RLS on all 4 tables with policies restricting operations based on `auth.uid()`.
-- **Private Resumes Storage**: Created `resumes` storage bucket in InsForge. Configured RLS policies on `storage.objects` to ensure users can only access their own files under `resumes/{auth.uid()}/resume.pdf`.
+- **Profile Form Component**: Created `components/profile/ProfileForm.tsx` (Client Component) containing:
+  - "Profile needs attention" alert banner with custom SVG progress ring (70%).
+  - Drag-and-drop PDF resume upload zone.
+  - Form layout for Personal Info, Professional Info (with dynamic skills and industries tag controls), Work Experience (dynamic role addition/deletion up to 3 items), Education, and Job Preferences.
+- **Profile Page Routing**: Integrated `ProfileForm` component inside `app/profile/page.tsx`.
+- **UI Registry Updates**: Documented `ProfileForm` styling classes, border configurations, spacing tokens, and custom SVG structures in `context/ui-registry.md`.
+- **Progress Tracker Updates**: Marked Feature 05 (Profile Page — Full UI) as completed in `context/progress-tracker.md`.
 
 ## Decisions made
 
-- **Relational Integrity**: Linked all secondary tables (`agent_runs`, `jobs`, `agent_logs`) directly to `profiles.id` (which references `auth.users(id)`) using `ON DELETE CASCADE` to keep database deletion mechanics simple and clean.
-- **Storage and Object Security**: Placed RLS rules on the `storage.objects` table using the prefix check `(key LIKE auth.uid()::text || '/%')` on the private `resumes` bucket.
-- **PostHog Client Provider Structure (carried over)**: Isolated PostHog client initialization inside `components/providers/PostHogProvider.tsx`.
-- **Server-Side OAuth Callback (carried over)**: Directed redirect callback to GET Route Handler to permit response headers cookies modification.
+- **Form State Delegation**: Decided to isolate interactive inputs and list arrays inside `components/profile/ProfileForm.tsx` (Client Component) to preserve `app/profile/page.tsx` as a Server Component for DB fetching.
+- **Dependency Minimization**: Implemented the circular progress completion ring as a native SVG component to avoid bringing in third-party library dependencies.
 
 ## Problems solved
 
-- **PostHog Token Mismatch (carried over)**: Added fallback logic to resolve PostHog key name differences between `.env` and `.env.local`.
-- **PowerShell Script Policy Restriction (carried over)**: Executed node commands using `npm.cmd` explicitly instead of `npm`.
+- **PowerShell Script Policy Restriction**: Resolved execution policy blockages by executing node/npm scripts explicitly via `npm.cmd` instead of `npm`.
 
 ## Current state
 
-- All foundation setup (Phase 1) is complete.
-- Database schemas are active, storage bucket is created, auth is integrated, and PostHog tracking baseline works.
+- All Page routes compile correctly, and the build succeeds.
+- Interactive states (drag-and-drop files, tag lists, work experience roles, and select fields) are visually functional on `/profile`.
 
 ## Next session starts with
 
-- **05 Profile Page — Full UI**: Build the complete profile page UI (banners, upload forms, personal/professional detail forms, preferences, and save triggers) using mock data.
+- **06 Profile Save Logic**: Create Server Actions inside `actions/profile.ts` to persist all form fields to the `profiles` table in the InsForge PostgreSQL DB, upload the PDF to `resumes` storage, and dynamically compute and store completion percentages.
 
 ## Open questions
 

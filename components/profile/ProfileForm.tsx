@@ -1,0 +1,812 @@
+"use client";
+
+import { useState } from "react";
+import { 
+  UploadCloud, 
+  AlertCircle, 
+  Calendar, 
+  Plus, 
+  X, 
+  Trash2, 
+  Sparkles,
+  ChevronDown
+} from "lucide-react";
+
+// Custom SVG Circular Progress Ring
+function CircularProgress({ percentage }: { percentage: number }) {
+  const radius = 28;
+  const strokeWidth = 6;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="relative flex items-center justify-center w-20 h-20">
+      <svg className="w-20 h-20 transform -rotate-90">
+        {/* Track circle */}
+        <circle
+          cx="40"
+          cy="40"
+          r={radius}
+          className="stroke-border-light fill-transparent"
+          strokeWidth={strokeWidth}
+        />
+        {/* Fill circle */}
+        <circle
+          cx="40"
+          cy="40"
+          r={radius}
+          className="stroke-error fill-transparent transition-all duration-300 ease-in-out"
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className="absolute font-sans font-bold text-lg text-text-primary">
+        {percentage}%
+      </span>
+    </div>
+  );
+}
+
+export function ProfileForm() {
+  // Mock profile state pre-filled to match design.png
+  const [fullName, setFullName] = useState("Faizan Ali");
+  const [email] = useState("faizan@jsmastery.pro"); // pre-filled, not editable
+  const [phone, setPhone] = useState("+1 (555) 000-0000");
+  const [location, setLocation] = useState("City, Country");
+  const [linkedinUrl, setLinkedinUrl] = useState("https://linkedin.com/in/faizan");
+  const [portfolioUrl, setPortfolioUrl] = useState("https://github.com/jsmastery");
+  const [workAuthorization, setWorkAuthorization] = useState("citizen");
+
+  const [currentTitle, setCurrentTitle] = useState("Frontend Engineer");
+  const [experienceLevel, setExperienceLevel] = useState("junior");
+  const [yearsExperience, setYearsExperience] = useState("4");
+
+  // Skills state
+  const [skills, setSkills] = useState<string[]>(["React", "TypeScript", "Next.js", "Tailwind CSS"]);
+  const [skillInput, setSkillInput] = useState("");
+
+  // Industries state
+  const [industries, setIndustries] = useState<string[]>([]);
+  const [industryInput, setIndustryInput] = useState("");
+
+  // Work Experience state (up to 3)
+  const [workExperience, setWorkExperience] = useState([
+    {
+      id: "1",
+      company: "Vercel",
+      jobTitle: "Frontend Engineer",
+      startDate: "January 2022",
+      endDate: "",
+      currentlyWorking: true,
+      responsibilities: "Built Next.js features and optimized web vitals. Led a team of 3 developers."
+    }
+  ]);
+
+  // Education state
+  const [highestDegree, setHighestDegree] = useState("high_school");
+  const [fieldOfStudy, setFieldOfStudy] = useState("Computer Science");
+  const [institutionName, setInstitutionName] = useState("E.g. State University");
+  const [graduationYear, setGraduationYear] = useState("YYYY");
+
+  // Job Preferences state
+  const [jobTitlesSeeking, setJobTitlesSeeking] = useState("Frontend Engineer, React Developer");
+  const [remotePreference, setRemotePreference] = useState("any");
+  const [salaryExpectation, setSalaryExpectation] = useState("E.g. $120k+");
+  const [preferredLocations, setPreferredLocations] = useState("E.g. New York, London");
+
+  // File Upload State
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
+
+  // Handlers for dynamic lists
+  const handleAddSkill = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (skillInput.trim() && !skills.includes(skillInput.trim())) {
+      setSkills([...skills, skillInput.trim()]);
+      setSkillInput("");
+    }
+  };
+
+  const handleRemoveSkill = (skillToRemove: string) => {
+    setSkills(skills.filter(s => s !== skillToRemove));
+  };
+
+  const handleAddIndustry = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (industryInput.trim() && !industries.includes(industryInput.trim())) {
+      setIndustries([...industries, industryInput.trim()]);
+      setIndustryInput("");
+    }
+  };
+
+  const handleRemoveIndustry = (industryToRemove: string) => {
+    setIndustries(industries.filter(i => i !== industryToRemove));
+  };
+
+  const handleAddRole = () => {
+    if (workExperience.length >= 3) return;
+    setWorkExperience([
+      ...workExperience,
+      {
+        id: Date.now().toString(),
+        company: "",
+        jobTitle: "",
+        startDate: "",
+        endDate: "",
+        currentlyWorking: false,
+        responsibilities: ""
+      }
+    ]);
+  };
+
+  const handleRemoveRole = (id: string) => {
+    setWorkExperience(workExperience.filter(w => w.id !== id));
+  };
+
+  const handleUpdateRole = (id: string, field: string, value: any) => {
+    setWorkExperience(
+      workExperience.map(w => {
+        if (w.id === id) {
+          return { ...w, [field]: value };
+        }
+        return w;
+      })
+    );
+  };
+
+  // Drag & drop handlers
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setIsDragActive(true);
+    } else if (e.type === "dragleave") {
+      setIsDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (file.type === "application/pdf") {
+        setUploadedFile(file);
+      } else {
+        alert("Only PDF formatting is allowed.");
+      }
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.type === "application/pdf") {
+        setUploadedFile(file);
+      } else {
+        alert("Only PDF formatting is allowed.");
+      }
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto pb-12">
+      {/* 1. Attention Banner */}
+      <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex items-center justify-between gap-6">
+        <div className="flex items-start gap-4">
+          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-error/10 text-error shrink-0">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div className="flex flex-col gap-2">
+            <h2 className="font-sans text-base font-semibold text-text-primary">
+              Profile needs attention
+            </h2>
+            <p className="font-sans text-sm text-text-secondary">
+              Complete the missing fields to improve your chance of getting tailored matches and generating quality resumes.
+            </p>
+            <div className="flex gap-2 mt-2">
+              <span className="bg-error/10 text-error font-sans text-xs font-semibold px-2 py-1 rounded">
+                PHONE
+              </span>
+              <span className="bg-error/10 text-error font-sans text-xs font-semibold px-2 py-1 rounded">
+                LOCATION
+              </span>
+              <span className="bg-error/10 text-error font-sans text-xs font-semibold px-2 py-1 rounded">
+                EDUCATION
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="shrink-0">
+          <CircularProgress percentage={70} />
+        </div>
+      </div>
+
+      {/* 2. Resume Section */}
+      <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+        <div>
+          <h3 className="font-sans text-base font-semibold text-text-primary">
+            Resume
+          </h3>
+          <p className="font-sans text-sm text-text-secondary mt-1">
+            Upload an existing resume to auto-fill the profile, or generate a new tailored one from your details below.
+          </p>
+        </div>
+
+        {/* Drag & Drop zone */}
+        <div
+          onDragEnter={handleDrag}
+          onDragOver={handleDrag}
+          onDragLeave={handleDrag}
+          onDrop={handleDrop}
+          className={`relative border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-colors ${
+            isDragActive 
+              ? "border-accent bg-accent/5" 
+              : "border-border-muted bg-surface-secondary hover:bg-surface-secondary/50"
+          }`}
+        >
+          <input
+            type="file"
+            id="resume-upload"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            accept=".pdf"
+            onChange={handleFileChange}
+          />
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-accent-muted text-accent mb-4">
+            <UploadCloud className="w-6 h-6" />
+          </div>
+          <p className="font-sans text-sm font-semibold text-text-primary">
+            {uploadedFile 
+              ? `Uploaded: ${uploadedFile.name}` 
+              : "Click to upload or drag and drop"
+            }
+          </p>
+          <p className="font-sans text-xs text-text-secondary mt-1">
+            {uploadedFile 
+              ? `${(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB • PDF formatting only.`
+              : "PDF formatting only. Maximum file size 5MB."
+            }
+          </p>
+          <label
+            htmlFor="resume-upload"
+            className="mt-4 px-4 py-2 bg-surface border border-border text-text-primary rounded-md font-sans text-sm font-medium shadow-sm hover:bg-surface-secondary cursor-pointer transition-colors z-10"
+          >
+            Select Resume
+          </label>
+        </div>
+
+        {/* Generate Resume Banner */}
+        <div className="flex items-center justify-between bg-surface-secondary rounded-xl p-4 border border-border mt-2">
+          <span className="font-sans text-sm text-text-secondary">
+            Need a fresh document based on the fields below?
+          </span>
+          <button className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-dark text-accent-foreground rounded-md font-sans text-sm font-medium shadow-sm transition-colors cursor-pointer">
+            <Sparkles className="w-4 h-4" />
+            Generate Resume from Profile
+          </button>
+        </div>
+      </div>
+
+      {/* 3. Profile Information Section */}
+      <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-6">
+        <div>
+          <h3 className="font-sans text-base font-semibold text-text-primary">
+            Profile Information
+          </h3>
+          <p className="font-sans text-sm text-text-secondary mt-1">
+            This context is used to accurately represent you in agent interactions.
+          </p>
+        </div>
+
+        <hr className="border-border" />
+
+        {/* Personal Info */}
+        <div className="flex flex-col gap-4">
+          <h4 className="font-sans text-base font-semibold text-text-primary">
+            Personal Info
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Full Name
+              </label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                disabled
+                className="font-sans text-sm text-text-muted bg-surface-secondary border border-border rounded-md px-3 py-2 cursor-not-allowed outline-none"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Phone Number
+              </label>
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+1 (555) 000-0000"
+                className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Location
+              </label>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="City, Country"
+                className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                LinkedIn URL
+              </label>
+              <input
+                type="url"
+                value={linkedinUrl}
+                onChange={(e) => setLinkedinUrl(e.target.value)}
+                className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Portfolio / GitHub
+              </label>
+              <input
+                type="url"
+                value={portfolioUrl}
+                onChange={(e) => setPortfolioUrl(e.target.value)}
+                className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5 md:col-span-2">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Work Authorization
+              </label>
+              <div className="relative">
+                <select
+                  value={workAuthorization}
+                  onChange={(e) => setWorkAuthorization(e.target.value)}
+                  className="w-full appearance-none font-sans text-sm text-text-primary bg-surface border border-border rounded-md pl-3 pr-10 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none cursor-pointer"
+                >
+                  <option value="citizen">Citizen</option>
+                  <option value="permanent_resident">Permanent Resident</option>
+                  <option value="visa_required">Visa Required</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr className="border-border" />
+
+        {/* Professional Info */}
+        <div className="flex flex-col gap-4">
+          <h4 className="font-sans text-base font-semibold text-text-primary">
+            Professional Info
+          </h4>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Current/Recent Job Title
+              </label>
+              <input
+                type="text"
+                value={currentTitle}
+                onChange={(e) => setCurrentTitle(e.target.value)}
+                className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                  Experience Level
+                </label>
+                <div className="relative">
+                  <select
+                    value={experienceLevel}
+                    onChange={(e) => setExperienceLevel(e.target.value)}
+                    className="w-full appearance-none font-sans text-sm text-text-primary bg-surface border border-border rounded-md pl-3 pr-10 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none cursor-pointer"
+                  >
+                    <option value="junior">Junior</option>
+                    <option value="mid">Mid-Level</option>
+                    <option value="senior">Senior</option>
+                    <option value="lead">Lead / Principal</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                  Years of Experience
+                </label>
+                <input
+                  type="number"
+                  value={yearsExperience}
+                  onChange={(e) => setYearsExperience(e.target.value)}
+                  className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Skills tag input */}
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Skills
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={skillInput}
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  placeholder="Add a skill"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddSkill(e);
+                    }
+                  }}
+                  className="flex-grow font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddSkill}
+                  className="px-4 py-2 bg-surface border border-border hover:bg-surface-secondary text-text-primary font-sans text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="inline-flex items-center gap-1.5 bg-surface-secondary border border-border-light text-text-primary font-sans text-xs font-medium pl-3 pr-2 py-1 rounded-full"
+                  >
+                    {skill}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSkill(skill)}
+                      className="text-text-secondary hover:text-text-primary p-0.5 rounded-full hover:bg-border-light"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Industries Worked In */}
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Industries Worked In (Optional)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={industryInput}
+                  onChange={(e) => setIndustryInput(e.target.value)}
+                  placeholder="E.g. FinTech, Healthcare"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddIndustry(e);
+                    }
+                  }}
+                  className="flex-grow font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddIndustry}
+                  className="px-4 py-2 bg-surface border border-border hover:bg-surface-secondary text-text-primary font-sans text-sm font-medium rounded-md shadow-sm transition-colors cursor-pointer"
+                >
+                  Add
+                </button>
+              </div>
+              {industries.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {industries.map((industry) => (
+                    <span
+                      key={industry}
+                      className="inline-flex items-center gap-1.5 bg-surface-secondary border border-border-light text-text-primary font-sans text-xs font-medium pl-3 pr-2 py-1 rounded-full"
+                    >
+                      {industry}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveIndustry(industry)}
+                        className="text-text-secondary hover:text-text-primary p-0.5 rounded-full hover:bg-border-light"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <hr className="border-border" />
+
+        {/* Work Experience */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-sans text-base font-semibold text-text-primary">
+              Work Experience
+            </h4>
+            {workExperience.length < 3 && (
+              <button
+                type="button"
+                onClick={handleAddRole}
+                className="flex items-center gap-1 text-accent hover:text-accent-dark font-sans text-sm font-semibold cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                Add role
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-6">
+            {workExperience.length === 0 ? (
+              <div className="text-center py-6 border border-dashed border-border rounded-xl">
+                <p className="font-sans text-sm text-text-muted">
+                  No work experience added yet. Click "Add role" to add your experience.
+                </p>
+              </div>
+            ) : (
+              workExperience.map((work, index) => (
+                <div 
+                  key={work.id} 
+                  className="relative p-5 border border-border rounded-xl bg-surface flex flex-col gap-4"
+                >
+                  {/* Delete role button */}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveRole(work.id)}
+                    className="absolute top-4 right-4 text-text-muted hover:text-error transition-colors cursor-pointer p-1 rounded-md hover:bg-error/5"
+                    title="Remove experience"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                        Company Name
+                      </label>
+                      <input
+                        type="text"
+                        value={work.company}
+                        onChange={(e) => handleUpdateRole(work.id, "company", e.target.value)}
+                        className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                        Job Title
+                      </label>
+                      <input
+                        type="text"
+                        value={work.jobTitle}
+                        onChange={(e) => handleUpdateRole(work.id, "jobTitle", e.target.value)}
+                        className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5 relative">
+                      <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                        Start Date
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={work.startDate}
+                          onChange={(e) => handleUpdateRole(work.id, "startDate", e.target.value)}
+                          placeholder="e.g. January 2022"
+                          className="w-full font-sans text-sm text-text-primary bg-surface border border-border rounded-md pl-3 pr-10 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+                        />
+                        <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                          End Date
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={work.currentlyWorking}
+                            onChange={(e) => handleUpdateRole(work.id, "currentlyWorking", e.target.checked)}
+                            className="rounded border-border text-accent focus:ring-accent accent-accent cursor-pointer"
+                          />
+                          <span className="font-sans text-xs text-text-secondary font-medium">Currently working here</span>
+                        </label>
+                      </div>
+                      <input
+                        type="text"
+                        value={work.currentlyWorking ? "" : work.endDate}
+                        disabled={work.currentlyWorking}
+                        onChange={(e) => handleUpdateRole(work.id, "endDate", e.target.value)}
+                        placeholder={work.currentlyWorking ? "---------- ----" : "e.g. Present or December 2023"}
+                        className={`font-sans text-sm border rounded-md px-3 py-2 outline-none ${
+                          work.currentlyWorking 
+                            ? "bg-surface-secondary border-border text-text-muted cursor-not-allowed" 
+                            : "bg-surface border-border text-text-primary focus:ring-1 focus:ring-accent focus:border-accent"
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                      Key Responsibilities
+                    </label>
+                    <textarea
+                      value={work.responsibilities}
+                      onChange={(e) => handleUpdateRole(work.id, "responsibilities", e.target.value)}
+                      className="w-full h-24 font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none resize-none"
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <hr className="border-border" />
+
+        {/* Education */}
+        <div className="flex flex-col gap-4">
+          <h4 className="font-sans text-base font-semibold text-text-primary">
+            Education
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Highest Degree
+              </label>
+              <div className="relative">
+                <select
+                  value={highestDegree}
+                  onChange={(e) => setHighestDegree(e.target.value)}
+                  className="w-full appearance-none font-sans text-sm text-text-primary bg-surface border border-border rounded-md pl-3 pr-10 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none cursor-pointer"
+                >
+                  <option value="high_school">High School</option>
+                  <option value="bachelors">Bachelor's Degree</option>
+                  <option value="masters">Master's Degree</option>
+                  <option value="phd">PhD</option>
+                  <option value="other">Other</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Field of Study
+              </label>
+              <input
+                type="text"
+                value={fieldOfStudy}
+                onChange={(e) => setFieldOfStudy(e.target.value)}
+                className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Institution Name
+              </label>
+              <input
+                type="text"
+                value={institutionName}
+                onChange={(e) => setInstitutionName(e.target.value)}
+                className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Graduation Year
+              </label>
+              <input
+                type="text"
+                value={graduationYear}
+                onChange={(e) => setGraduationYear(e.target.value)}
+                className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        <hr className="border-border" />
+
+        {/* Job Preferences */}
+        <div className="flex flex-col gap-4">
+          <h4 className="font-sans text-base font-semibold text-text-primary">
+            Job Preferences
+          </h4>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Job Titles Seeking
+              </label>
+              <input
+                type="text"
+                value={jobTitlesSeeking}
+                onChange={(e) => setJobTitlesSeeking(e.target.value)}
+                className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                  Remote Preference
+                </label>
+                <div className="relative">
+                  <select
+                    value={remotePreference}
+                    onChange={(e) => setRemotePreference(e.target.value)}
+                    className="w-full appearance-none font-sans text-sm text-text-primary bg-surface border border-border rounded-md pl-3 pr-10 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none cursor-pointer"
+                  >
+                    <option value="any">Any</option>
+                    <option value="remote">Remote Only</option>
+                    <option value="hybrid">Hybrid</option>
+                    <option value="onsite">On-site Only</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                  Salary Expectation (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={salaryExpectation}
+                  onChange={(e) => setSalaryExpectation(e.target.value)}
+                  className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                Preferred Locations (Optional)
+              </label>
+              <input
+                type="text"
+                value={preferredLocations}
+                onChange={(e) => setPreferredLocations(e.target.value)}
+                className="font-sans text-sm text-text-primary bg-surface border border-border rounded-md px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Save Button */}
+      <button className="w-full py-3 bg-accent hover:bg-accent-dark text-accent-foreground font-sans text-sm font-semibold rounded-md shadow-sm transition-colors cursor-pointer flex items-center justify-center">
+        Save Profile
+      </button>
+    </div>
+  );
+}
