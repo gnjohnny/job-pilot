@@ -249,19 +249,19 @@ Last updated: 2026-06-28
 ### Profile Form
 
 File: [components/profile/ProfileForm.tsx](file:///C:/Users/Johnny/Agy_test/lead_finder/components/profile/ProfileForm.tsx)
-Last updated: 2026-06-28
+Last updated: 2026-06-29
 
 | Property         | Class                                                     |
 | ---------------- | --------------------------------------------------------- |
-| Background       | `bg-surface` (cards), `bg-surface-secondary` (inputs and drag-and-drop), `bg-accent` (save/generate buttons), `bg-error/10` (attention banner indicators), `bg-accent-muted` (icon circles) |
-| Border           | `border border-border` (cards, inputs), `border-2 border-dashed border-border-muted` (dropzone), `border-border-light` (tags) |
+| Background       | `bg-surface` (cards), `bg-surface-secondary` (inputs and drag-and-drop), `bg-accent` (save/generate/extract buttons), `bg-error/10` (attention banner indicators), `bg-accent-muted` (icon circles) |
+| Border           | `border border-border` (cards, inputs, clear button), `border-2 border-dashed border-border-muted` (dropzone), `border-border-light` (tags) |
 | Border radius    | `rounded-2xl` (cards), `rounded-xl` (inner dynamic container/banners), `rounded-md` (buttons, inputs), `rounded-full` (tags) |
-| Text — primary   | `text-text-primary` (labels, text values), `text-accent-foreground` (buttons) |
+| Text — primary   | `text-text-primary` (labels, text values, clear button), `text-accent-foreground` (buttons) |
 | Text — secondary | `text-text-secondary` (subtexts, helper notes), `text-text-muted` (disabled text) |
-| Spacing          | `p-6` (cards), `p-5` (role card), `p-8` (dropzone), `px-3 py-2` (inputs), `px-4 py-2` (buttons), `gap-6` (page sections), `gap-4` (grid layout) |
-| Hover state      | `hover:bg-accent-dark` (accent buttons), `hover:bg-surface-secondary/50` (dropzone hover), `hover:bg-surface-secondary` (secondary buttons), `hover:text-error` (delete button) |
+| Spacing          | `p-6` (cards), `p-5` (role card), `p-8` (dropzone), `px-3 py-2` (inputs), `px-4 py-2` (buttons), `gap-6` (page sections), `gap-4` (grid layout), `gap-2 mt-4` (extract buttons container) |
+| Hover state      | `hover:bg-accent-dark` (accent/extract buttons), `hover:bg-surface-secondary/50` (dropzone hover), `hover:bg-surface-secondary` (secondary/clear buttons), `hover:text-error` (delete button) |
 | Shadow           | `shadow-sm` (cards and inputs)                            |
-| Accent usage     | `text-accent` (role add text, icons), `bg-accent` (primary button), `bg-accent-muted` (icon wrapper) |
+| Accent usage     | `text-accent` (role add text, icons, sparkles icon), `bg-accent` (primary/extract button), `bg-accent-muted` (icon wrapper) |
 
 **Pattern notes:**
 - Client-side interactive profile and resume management form.
@@ -270,6 +270,7 @@ Last updated: 2026-06-28
 - Email input is locked as read-only. Start Date fields are annotated with a Calendar icon. End Date fields are disabled when the "Currently working here" checkbox is checked.
 - Incorporates "Cover Letter Tone" preference selection (Formal, Casual, Enthusiastic).
 - Fully wired to `saveProfileAction` (Server Action) for DB saving, storage PDF upload, and PostHog tracking.
+- Features "Extract from Resume" button triggering server-side `/api/resume/extract` to parse selected PDF and auto-fill form state variables.
 
 
 

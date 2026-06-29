@@ -1,27 +1,32 @@
-# Memory — PDF Download Format Fix
+# Memory — AI Profile Extraction from Resume
 
-Last updated: 2026-06-28T16:51:00+03:00
+Last updated: 2026-06-29T12:17:35+03:00
 
 ## What was built
 
-- **Explicit PDF Content-Type Wrapping**: Modified `handleViewStoredResume` in [components/profile/ProfileForm.tsx](file:///C:/Users/Johnny/Agy_test/lead_finder/components/profile/ProfileForm.tsx) to explicitly wrap the downloaded storage file Blob in a new Blob of type `"application/pdf"` before generating the object URL. This ensures the browser handles the file correctly as a PDF.
+- Created [app/api/resume/extract/route.ts](file:///C:/Users/Johnny/Agy_test/lead_finder/app/api/resume/extract/route.ts) API endpoint to parse resume PDFs and extract structured profile details via GPT-4o.
+- Created [types/pdf-parse.d.ts](file:///C:/Users/Johnny/Agy_test/lead_finder/types/pdf-parse.d.ts) to define custom type declarations for the `pdf-parse` package.
+- Modified [components/profile/ProfileForm.tsx](file:///C:/Users/Johnny/Agy_test/lead_finder/components/profile/ProfileForm.tsx) to render **Extract from Resume** and **Clear** buttons on PDF file selection, manage the extraction states, and auto-fill form state variables with parsed JSON.
+- Installed `pdf-parse`, `openai`, and `zod` as dependencies in [package.json](file:///C:/Users/Johnny/Agy_test/lead_finder/package.json).
 
 ## Decisions made
 
-- **Client-Side Blob Reconstruction**: Reconstructed the Blob on the client-side rather than changing the server-side API or metadata. This ensures correct rendering regardless of how the file is served by the storage backend.
+- **API Route Authentication**: Required authentication using `createInsforgeServer()` to reject unauthenticated requests with a 401 Unauthorized status.
+- **Enum Mapping & Constraints**: Enforced exact enums (e.g. `experience_level`, `highestDegree`) and max 3 work experiences in the GPT-4o system prompt to match database and UI dropdown expectations.
+- **Save Profile Requirement**: Configured the extraction UI to fill local state variables instead of writing directly to the database, requiring the user to review the fields and click "Save Profile" manually.
 
 ## Problems solved
 
-- **Unknown Download File Format**: Resolved the bug where viewed/downloaded resume PDF files were downloaded as files of unknown format (no extension) and could not be opened.
+- **Terminal Execution Policies**: Resolved a PowerShell Script execution policy block by using `npm.cmd` rather than `npm` when running packages or build commands.
 
 ## Current state
 
-- The profile resume download, view, and upload operations are fully functional.
-- Next.js production build passes compilation and type-checking successfully.
+- Profile extraction from resume is fully implemented, responsive, and functional in the form UI.
+- Next.js Turbopack compiler builds successfully, and strict type-checks compile without any warnings or errors.
 
 ## Next session starts with
 
-- **07 AI Profile Extraction from Resume**: Build the "Extract from Resume" feature which uses `pdf-parse` to read uploaded PDF text and asks GPT-4o to automatically extract and populate the profile form fields.
+- **08 Resume PDF Generation from Profile**: Build the POST `/api/resume/generate` API endpoint and integrate the "Generate Resume from Profile" UI action.
 
 ## Open questions
 

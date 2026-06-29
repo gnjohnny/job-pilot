@@ -124,6 +124,7 @@ export function ProfileForm({ initialData, email }: Props) {
   const [resumePdfUrl, setResumePdfUrl] = useState<string | null>(initialData?.resume_pdf_url ?? null);
   const [isDragActive, setIsDragActive] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   // Calculate live completion stats
   const checkPayload = {
@@ -295,6 +296,85 @@ export function ProfileForm({ initialData, email }: Props) {
     }
   };
 
+  const handleExtractResume = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (!uploadedFile) return;
+
+    setIsExtracting(true);
+    const toastId = toast.loading("Extracting resume contents...");
+
+    try {
+      const formData = new FormData();
+      formData.append("resume", uploadedFile);
+
+      const response = await fetch("/api/resume/extract", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const data = result.data;
+        
+        // Auto-fill fields
+        if (data.full_name) setFullName(data.full_name);
+        if (data.phone) setPhone(data.phone);
+        if (data.location) setLocation(data.location);
+        if (data.current_title) setCurrentTitle(data.current_title);
+        if (data.experience_level) setExperienceLevel(data.experience_level);
+        if (data.years_experience !== undefined && data.years_experience !== null) {
+          setYearsExperience(String(data.years_experience));
+        }
+        if (Array.isArray(data.skills)) setSkills(data.skills);
+        if (Array.isArray(data.industries)) setIndustries(data.industries);
+        
+        if (Array.isArray(data.work_experience)) {
+          setWorkExperience(
+            data.work_experience.map((w: any, index: number) => ({
+              id: index.toString(),
+              company: w.company || "",
+              jobTitle: w.jobTitle || "",
+              startDate: w.startDate || "",
+              endDate: w.endDate || "",
+              currentlyWorking: !!w.currentlyWorking,
+              responsibilities: w.responsibilities || ""
+            }))
+          );
+        }
+
+        if (data.education) {
+          if (data.education.highestDegree) setHighestDegree(data.education.highestDegree);
+          if (data.education.fieldOfStudy) setFieldOfStudy(data.education.fieldOfStudy);
+          if (data.education.institutionName) setInstitutionName(data.education.institutionName);
+          if (data.education.graduationYear) setGraduationYear(data.education.graduationYear);
+        }
+
+        if (Array.isArray(data.job_titles_seeking)) {
+          setJobTitlesSeeking(data.job_titles_seeking.join(", "));
+        }
+        if (data.remote_preference) setRemotePreference(data.remote_preference);
+        if (data.salary_expectation) setSalaryExpectation(data.salary_expectation);
+        if (Array.isArray(data.preferred_locations)) {
+          setPreferredLocations(data.preferred_locations.join(", "));
+        }
+        if (data.cover_letter_tone) setCoverLetterTone(data.cover_letter_tone);
+
+        toast.dismiss(toastId);
+        toast.success("Profile details extracted successfully! Please review and save.");
+      } else {
+        toast.dismiss(toastId);
+        toast.error(result.error || "Failed to extract details from resume.");
+      }
+    } catch (err) {
+      toast.dismiss(toastId);
+      console.error("[ProfileForm] Extraction error:", err);
+      toast.error("An error occurred during resume extraction.");
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
   // Submit/Save Handler
   const handleSave = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -413,6 +493,7 @@ export function ProfileForm({ initialData, email }: Props) {
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             accept=".pdf"
             onChange={handleFileChange}
+            disabled={isExtracting}
           />
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-accent-muted text-accent mb-4">
             <UploadCloud className="w-6 h-6" />
@@ -440,12 +521,34 @@ export function ProfileForm({ initialData, email }: Props) {
               View stored PDF
             </button>
           )}
-          <label
-            htmlFor="resume-upload"
-            className="mt-4 px-4 py-2 bg-surface border border-border text-text-primary rounded-md font-sans text-sm font-medium shadow-sm hover:bg-surface-secondary cursor-pointer transition-colors z-10"
-          >
-            Select Resume
-          </label>
+          {uploadedFile ? (
+            <div className="flex gap-2 mt-4 z-10">
+              <button
+                type="button"
+                onClick={handleExtractResume}
+                disabled={isExtracting}
+                className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-dark disabled:bg-accent/50 text-accent-foreground rounded-md font-sans text-sm font-medium shadow-sm transition-colors cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                {isExtracting ? "Extracting..." : "Extract from Resume"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadedFile(null)}
+                disabled={isExtracting}
+                className="px-4 py-2 bg-surface border border-border text-text-primary rounded-md font-sans text-sm font-medium shadow-sm hover:bg-surface-secondary transition-colors cursor-pointer"
+              >
+                Clear
+              </button>
+            </div>
+          ) : (
+            <label
+              htmlFor="resume-upload"
+              className="mt-4 px-4 py-2 bg-surface border border-border text-text-primary rounded-md font-sans text-sm font-medium shadow-sm hover:bg-surface-secondary cursor-pointer transition-colors z-10"
+            >
+              Select Resume
+            </label>
+          )}
         </div>
 
         {/* Generate Resume Banner */}
@@ -1006,7 +1109,7 @@ export function ProfileForm({ initialData, email }: Props) {
       {/* Save Button */}
       <button 
         onClick={handleSave}
-        disabled={isSaving}
+        disabled={isSaving || isExtracting}
         className="w-full py-3 bg-accent hover:bg-accent-dark disabled:bg-accent/50 text-accent-foreground font-sans text-sm font-semibold rounded-md shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-2"
       >
         {isSaving ? "Saving Profile..." : "Save Profile"}
